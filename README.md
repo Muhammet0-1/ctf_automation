@@ -1,21 +1,53 @@
-Kullanım Adımları:
+# 🧰 CTFKit - CLI Capture The Flag Toolkit
 
-    Projenin Kurulumu:
+![Python](https://img.shields.io/badge/Python-3.x-blue?style=for-the-badge&logo=python)
+![Linux](https://img.shields.io/badge/OS-Linux-black?style=for-the-badge&logo=linux)
 
-        Python yüklü olduğundan emin olun.
+**CTFKit**, CTF (Capture The Flag) yarışmalarında ve güvenlik testlerinde sıkça ihtiyaç duyulan temel işlemleri (Tarama, Şifre Çözme, Dosya Analizi) tek bir komut satırı aracı altında toplayan, Python tabanlı bir "İsviçre Çakısı"dır.
 
-        Nmap yüklü olmalı. Eğer yüklü değilse:
+Tarayıcı açıp decoder siteleriyle uğraşmak yerine, terminalinizden ayrılmadan işinizi halledin.
 
-    sudo apt-get install nmap
+## 🚀 Özellikler
 
-Scriptin Çalıştırılması:
+* **🔍 Scanner:** Nmap entegrasyonu ile hızlı port ve servis taraması.
+* **🔓 Decoder:** Base64, Hex, Rot13 gibi formatları otomatik algılar ve çözer.
+* **📂 Analyzer:** Dosya türünü (`file`) ve içindeki gizli metinleri (`strings`) analiz eder.
+* **💻 CLI:** Argüman tabanlı (`argparse`) modern komut satırı arayüzü.
 
-    Scripti çalıştırmak için terminalde şunu yazabilirsiniz:
+## 🛠️ Kurulum
 
-    python ctf_automation.py
+```bash
+# Projeyi klonlayın
+git clone [https://github.com/Muhammet0-1/ctf_automation.git](https://github.com/Muhammet0-1/ctf_automation.git)
+cd ctf_automation
 
-    Program sizden hedef IP veya URL isteyecek, girdikten sonra port taraması ve exploit denemesi başlayacak.
+# (Opsiyonel) Sistem genelinde kullanmak için alias ekleyebilirsiniz:
+# alias ctfkit="python3 $(pwd)/ctfkit.py"
 
-Rapor:
+📖 Kullanım
+1. Ağ Taraması (Scan)
 
-    scan_report.txt dosyası oluşturulacak ve bu dosya içerisinde tarama, exploit ve bayrak bilgisi bulunacak.
+Hedef makineyi tarar. Varsayılan olarak versiyon taraması (-sV) yapar.
+Bash
+
+python ctfkit.py scan 10.10.1.5
+python ctfkit.py scan 10.10.1.5 -a  # Agresif tarama
+
+2. Şifre Çözme (Decode)
+
+Verilen metni analiz eder ve olası çözümleri (Base64, Hex, Rot13) basar.
+Bash
+
+python ctfkit.py decode "SGVsbG8gQ1RG"
+# Çıktı: [+] Base64 : Hello CTF
+
+3. Dosya Analizi (Analyze)
+
+Bir dosyanın türünü ve içindeki okunabilir stringleri gösterir.
+Bash
+
+python ctfkit.py analyze supheli_dosya.jpg
+
+⚠️ Yasal Uyarı
+
+Bu araç eğitim ve CTF yarışmaları için tasarlanmıştır.
