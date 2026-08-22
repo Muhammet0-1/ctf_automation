@@ -1,53 +1,132 @@
-# 🧰 CTFKit - CLI Capture The Flag Toolkit
+# CTFKit
 
-![Python](https://img.shields.io/badge/Python-3.x-blue?style=for-the-badge&logo=python)
-![Linux](https://img.shields.io/badge/OS-Linux-black?style=for-the-badge&logo=linux)
+[![CI](https://github.com/Muhammet0-1/ctf_automation/actions/workflows/ci.yml/badge.svg)](https://github.com/Muhammet0-1/ctf_automation/actions/workflows/ci.yml)
+[![Python](https://img.shields.io/badge/Python-3.10--3.13-blue.svg)](https://www.python.org/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-**CTFKit**, CTF (Capture The Flag) yarışmalarında ve güvenlik testlerinde sıkça ihtiyaç duyulan temel işlemleri (Tarama, Şifre Çözme, Dosya Analizi) tek bir komut satırı aracı altında toplayan, Python tabanlı bir "İsviçre Çakısı"dır.
+CTFKit, açıkça yetkilendirilmiş yerel laboratuvarlar ve Capture The Flag ortamları için sınırlı komut satırı
+yardımcıları sunar. Üç bağımsız işlevi vardır:
 
-Tarayıcı açıp decoder siteleriyle uğraşmak yerine, terminalinizden ayrılmadan işinizi halledin.
+- Yetki ve adres kapsamı doğrulanan, hız/zaman/port sınırlarına sahip Nmap TCP connect taraması
+- Base64, Base32, Base64URL, hex, URL-percent, ROT13 ve reverse için tek geçişli decode adayları
+- Dosyayı çalıştırmadan SHA-256, imza, örnek entropy ve sınırlı printable string analizi
 
-## 🚀 Özellikler
+> Yalnızca sahibi olduğunuz veya açıkça test izni aldığınız hedeflerde kullanın. Bir CTF platformunda hesap
+> sahibi olmak, platform dışındaki sistemleri tarama izni vermez.
 
-* **🔍 Scanner:** Nmap entegrasyonu ile hızlı port ve servis taraması.
-* **🔓 Decoder:** Base64, Hex, Rot13 gibi formatları otomatik algılar ve çözer.
-* **📂 Analyzer:** Dosya türünü (`file`) ve içindeki gizli metinleri (`strings`) analiz eder.
-* **💻 CLI:** Argüman tabanlı (`argparse`) modern komut satırı arayüzü.
+## Neden yeniden tasarlandı?
 
-## 🛠️ Kurulum
+İlk prototip varsayılan olarak Nmap `-sV -sC`, agresif modda `-A -T4` çalıştırıyor; hedef adresleri, port
+aralıklarını ve süreyi sınırlamıyordu. Dosya analizi ise `file | strings | head` dış süreç zincirine bağlıydı.
+Sürüm 1.0 saldırı yüzeyini ve yanlış kullanım riskini azaltmak için bu davranışları kaldırır.
+
+## Güvenlik modeli
+
+- Her tarama `--acknowledge-authorization` ister.
+- Loopback, RFC1918 ve IPv6 ULA hedefleri varsayılan olarak kabul edilir.
+- Global hedefler ayrıca `--allow-public-target` ister.
+- Reserved, link-local, multicast, unspecified, mapped ve transition adresleri reddedilir.
+- DNS en fazla sekiz adrese çözülür; mixed local/public cevaplar reddedilir ve Nmap seçilen IP'ye sabitlenir.
+- Varsayılan tarama `-sT -T3`, `--max-retries 2`, `--max-rate 100` ve mutlak timeout kullanır.
+- NSE scriptleri, version/OS detection, `-A`, credential attack, exploit, persistence ve evasion özelliği yoktur.
+- Tam port taraması ayrı `--acknowledge-full-scan` onayı ister.
+- Dosya analizi salt okunurdur; son symlink, özel dosya ve limit üstü dosyalar reddedilir.
+- Decoder girdisi ve çıktısı sınırlıdır; recursive decoding veya arşiv açma yapmaz.
+
+## Kurulum
 
 ```bash
-# Projeyi klonlayın
-git clone [https://github.com/Muhammet0-1/ctf_automation.git](https://github.com/Muhammet0-1/ctf_automation.git)
+git clone https://github.com/Muhammet0-1/ctf_automation.git
 cd ctf_automation
+python -m venv .venv
+. .venv/bin/activate
+python -m pip install -e .
+```
 
-# (Opsiyonel) Sistem genelinde kullanmak için alias ekleyebilirsiniz:
-# alias ctfkit="python3 $(pwd)/ctfkit.py"
+Decode ve analyze komutları yalnızca Python standart kütüphanesini kullanır. `scan` komutu için sistemde Nmap
+bulunmalıdır.
 
-📖 Kullanım
-1. Ağ Taraması (Scan)
+## Yetkili tarama
 
-Hedef makineyi tarar. Varsayılan olarak versiyon taraması (-sV) yapar.
-Bash
+HTB/TryHackMe gibi özel adres kullanan, kapsam dahilindeki bir CTF makinesi:
 
-python ctfkit.py scan 10.10.1.5
-python ctfkit.py scan 10.10.1.5 -a  # Agresif tarama
+```bash
+ctfkit scan 10.10.10.10 \
+  --acknowledge-authorization
+```
 
-2. Şifre Çözme (Decode)
+Belirli portlar:
 
-Verilen metni analiz eder ve olası çözümleri (Base64, Hex, Rot13) basar.
-Bash
+```bash
+ctfkit scan 10.10.10.10 \
+  --acknowledge-authorization \
+  --ports 22,80,443,8000-8100 \
+  --format json
+```
 
-python ctfkit.py decode "SGVsbG8gQ1RG"
-# Çıktı: [+] Base64 : Hello CTF
+Tam port aralığı iki ayrı onay gerektirir:
 
-3. Dosya Analizi (Analyze)
+```bash
+ctfkit scan 10.10.10.10 \
+  --acknowledge-authorization \
+  --ports all \
+  --acknowledge-full-scan
+```
 
-Bir dosyanın türünü ve içindeki okunabilir stringleri gösterir.
-Bash
+Yetkilendirilmiş global bir hedefte ayrıca `--allow-public-target` kullanılır. Bu seçenek hukuki veya
+sözleşmesel izin sağlamaz; yalnızca yanlışlıkla public taramayı önleyen teknik kapıyı açar.
 
-python ctfkit.py analyze supheli_dosya.jpg
+## Decode
 
-⚠️ Yasal Uyarı
+```bash
+ctfkit decode SGVsbG8gQ1RG
+printf '%s' '48656c6c6f' | ctfkit decode --stdin --format json
+```
 
-Bu araç eğitim ve CTF yarışmaları için tasarlanmıştır.
+Komut satırı argümanları süreç listesinde görünebildiğinden hassas girdiler için `--stdin` tercih edilmelidir.
+Sonuçlar yalnızca olası dönüşümlerdir; otomatik olarak "şifre kırıldı" iddiasında bulunmaz.
+
+## Salt okunur dosya analizi
+
+```bash
+ctfkit analyze challenge.bin
+ctfkit analyze evidence.dat --max-strings 50 --format jsonl
+```
+
+Araç dosyayı çalıştırmaz, import etmez, extract etmez veya değiştirmez. SHA-256 dosyanın tamamından; tür,
+entropy ve string gözlemleri en fazla ilk 1 MiB örnekten üretilir. Varsayılan toplam dosya sınırı 64 MiB'dir.
+
+## Çıktı ve çıkış kodları
+
+Her alt komut `text`, `json` ve `jsonl` çıktı sunar. Text çıktısında terminal kontrol karakterleri escape edilir;
+JSON biçimleri `NaN` üretmez.
+
+| Kod | Anlam |
+| --- | --- |
+| `0` | İşlem başarıyla tamamlandı |
+| `1` | Çözümleme, Nmap veya dosya analizi hatası |
+| `2` | CLI ya da doğrulama hatası |
+| `3` | `scan --fail-on-open` seçiliyken açık port bulundu |
+| `130` | Kullanıcı kesintisi |
+
+## Sınırlamalar
+
+CTFKit bir zafiyet tarayıcısı veya exploit framework'ü değildir. Nmap çıktısında yalnızca açık TCP portlarını ve
+Nmap'in statik port tablosundaki servis adlarını raporlar. UDP taramaz, version detection veya NSE çalıştırmaz, web crawl yapmaz ve kimlik bilgisi
+denemez. Magic-byte dosya tespiti sınırlı bir gözlemdir; adli analiz veya malware sandbox yerine geçmez.
+
+## Geliştirme
+
+```bash
+python -m pip install -e '.[dev]'
+ruff format --check .
+ruff check .
+mypy
+pytest
+python -m build
+```
+
+Testler gerçek DNS, socket ve Nmap çalıştırmasını engeller; bütün dış etkiler sahte bağımlılıklarla test edilir.
+
+Güvenlik bildirimleri için [SECURITY.md](SECURITY.md), katkı rehberi için
+[CONTRIBUTING.md](CONTRIBUTING.md) dosyasına bakın. Proje [MIT Lisansı](LICENSE) ile sunulur.

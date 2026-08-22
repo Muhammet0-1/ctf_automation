@@ -1,0 +1,9 @@
+include CHANGELOG.md
+include CONTRIBUTING.md
+include LICENSE
+include README.md
+include SECURITY.md
+include ctfkit.py
+include requirements.txt
+recursive-include src/ctfkit py.typed
+recursive-include tests *.py
