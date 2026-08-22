@@ -15,16 +15,16 @@ if __name__ == "ctfkit" and _SOURCE_PACKAGE.is_dir():
     __path__ = [str(_SOURCE_PACKAGE)]
     __version__ = "1.0.0"
 
-    from ctfkit.config import (  # noqa: E402
+    from ctfkit.config import (
         PortSelection,
         ScanConfig,
         Target,
         parse_port_selection,
         parse_target,
     )
-    from ctfkit.decoders import DecodeCandidate, decode_candidates  # noqa: E402
-    from ctfkit.file_analysis import FileAnalysis, analyze_file  # noqa: E402
-    from ctfkit.scanner import NmapScanner, ScanReport  # noqa: E402
+    from ctfkit.decoders import DecodeCandidate, decode_candidates
+    from ctfkit.file_analysis import FileAnalysis, analyze_file
+    from ctfkit.scanner import NmapScanner, ScanReport
 
     __all__ = [
         "DecodeCandidate",
